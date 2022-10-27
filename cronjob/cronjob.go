@@ -2,6 +2,8 @@ package cronjob
 
 import (
 	"context"
+	"reflect"
+	"runtime"
 	"runtime/debug"
 	"time"
 
@@ -28,6 +30,8 @@ func work(cronjob func(context.Context) error, generateKey func() string, maxDur
 
 	cronjobID, _ := uuid.NewV4()
 	ctx := context.WithValue(context.Background(), logging.ContextKeyRequestId, cronjobID.String())
+
+	logging.Info(ctx, "[cronjob] start %s", runtime.FuncForPC(reflect.ValueOf(cronjob).Pointer()).Name())
 
 	key := "cronjob:" + generateKey()
 
