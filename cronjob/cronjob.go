@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"runtime"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/go-co-op/gocron"
@@ -19,7 +20,8 @@ func Cron() {
 
 	scheduler := gocron.NewScheduler(time.UTC)
 
-	scheduler.Every(10).Second().Do(work, TWSE.GetTWSEQuote, TWSE.GetTWSEQuoteKey, time.Second*5)
+	startTime := time.Now().Truncate(5 * time.Second)
+	scheduler.Every(5).Second().StartAt(startTime).Do(work, TWSE.GetTWSEQuote, TWSE.GetTWSEQuoteKey, time.Second*5)
 
 	// Start all the pending jobs
 	scheduler.StartAsync()
@@ -31,8 +33,8 @@ func work(cronjob func(context.Context) error, generateKey func() string, maxDur
 	cronjobID, _ := uuid.NewV4()
 	ctx := context.WithValue(context.Background(), logging.ContextKeyRequestId, cronjobID.String())
 
-	logging.Info(ctx, "[cronjob] start %s", runtime.FuncForPC(reflect.ValueOf(cronjob).Pointer()).Name())
-
+	funcName := strings.Split(runtime.FuncForPC(reflect.ValueOf(cronjob).Pointer()).Name(), "/")
+	logging.Info(ctx, "[cronjob] start %s", funcName[len(funcName)-1])
 	key := "cronjob:" + generateKey()
 
 	r, _ := cache.GetRedis()
