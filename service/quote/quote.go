@@ -80,6 +80,25 @@ func (impl *QuoteImpl) GetQuotes(ctx context.Context, in *quote.GetQuotesReq) (*
 		queries = append(queries, query)
 	}
 
+	var from, to time.Time
+	if in.GetFrom != nil {
+		from, err = time.Parse("150405", *in.GetFrom)
+		if err != nil {
+			logging.Error(ctx, "[GetQuotes] parse time %s error: %v", *in.GetFrom, err)
+			return nil, common.ErrInvalidParam
+		}
+	}
+	if in.GetTo != nil {
+		to, err = time.Parse("150405", *in.GetTo)
+		if err != nil {
+			logging.Error(ctx, "[GetQuotes] parse time %s error: %v", *in.GetTo, err)
+			return nil, common.ErrInvalidParam
+		}
+		if *in.GetTo == "000000" {
+			to = to.Add(time.Hour * 24)
+		}
+	}
+
 	models, err := quoteDao.Gets(ctx, rds, queries)
 	if err != nil {
 		logging.Error(ctx, "[GetQuotes] redis gets error: %v", err)
@@ -89,9 +108,34 @@ func (impl *QuoteImpl) GetQuotes(ctx context.Context, in *quote.GetQuotesReq) (*
 	quotes := []*quote.GetQuotesResItem{}
 
 	for _, m := range models {
+
+		resQuote := map[string]string{}
+
+		for k, v := range m.Quote {
+			if (k == "ask" && in.Flag&quote.GetQuotesReq_GetFlag_Ask > 0) ||
+				(k == "bid" && in.Flag&quote.GetQuotesReq_GetFlag_Bid > 0) ||
+				(in.GetFrom == nil || in.GetTo == nil) {
+				resQuote[k] = v
+				continue
+			}
+
+			quoteTime, err := time.Parse("150405", k)
+			if err != nil {
+				logging.Warn(ctx, "[GetQuotes] parse time %s failed: %v", k, err)
+				continue
+			}
+			if k == "000000" {
+				quoteTime = quoteTime.Add(time.Hour * 24)
+			}
+
+			if quoteTime.After(from) && !quoteTime.After(to) {
+				resQuote[k] = v
+			}
+		}
+
 		q := &quote.GetQuotesResItem{
 			ProductID: int64(m.ProductID),
-			Quotes:    m.Quote,
+			Quotes:    resQuote,
 		}
 		quotes = append(quotes, q)
 	}

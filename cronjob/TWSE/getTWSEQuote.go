@@ -102,8 +102,6 @@ func GetTWSEQuote(ctx context.Context) error {
 			},
 		}
 
-		logging.Info(ctx, "[GetTWSEQuote] test model %#v", quote)
-
 		quotes = append(quotes, quote)
 	}
 
