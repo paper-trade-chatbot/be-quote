@@ -143,6 +143,9 @@ func (impl *QuoteImpl) DeleteQuotes(ctx context.Context, in *quote.DeleteQuotesR
 	}
 	deleteFrom := time.Date(0, 0, 0, fromHour, fromMinute, fromSecond, 0, time.UTC)
 	deleteTo := time.Date(0, 0, 0, toHour, toMinute, toSecond, 0, time.UTC)
+	if in.DeleteTo == "000000" {
+		deleteTo = time.Date(0, 0, 1, 0, 0, 0, 0, time.UTC)
+	}
 
 	for _, m := range models {
 		for k := range m.Quote {

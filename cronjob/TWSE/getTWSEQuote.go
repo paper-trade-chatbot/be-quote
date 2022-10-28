@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/paper-trade-chatbot/be-quote/cache"
@@ -69,33 +70,39 @@ func GetTWSEQuote(ctx context.Context) error {
 	if _, ok := result["msgArray"]; !ok {
 		return errors.New("no message array")
 	}
-	if _, ok := result["msgArray"].(map[string]interface{}); !ok {
+	if _, ok := result["msgArray"].([]interface{}); !ok {
+		logging.Error(ctx, "[GetTWSEQuote] message array cast failed. %#v", result["msgArray"])
 		return errors.New("message array cast failed")
 	}
 
 	quotes := []*redisModels.QuoteModel{}
 
-	for _, msg := range result["msgArray"].([]map[string]interface{}) {
-
-		if _, ok := modelsMap[msg["ch"].(string)]; !ok {
+	for _, m := range result["msgArray"].([]interface{}) {
+		msg := m.(map[string]interface{})
+		if _, ok := modelsMap[msg["ex"].(string)+"_"+msg["ch"].(string)]; !ok {
 			logging.Warn(ctx, "[GetTWSEQuote] no such code in models: %s", msg["ch"].(string))
 			continue
 		}
 
 		quoteTime := now.Format("150405")
 
+		ask := strings.Split(msg["a"].(string), "_")
+		bid := strings.Split(msg["b"].(string), "_")
+
 		quote := &redisModels.QuoteModel{
-			ProductID:    modelsMap[msg["ch"].(string)].ProductID,
-			Type:         redisModels.ProductType(modelsMap[msg["ch"].(string)].Type),
-			SourceCode:   modelsMap[msg["ch"].(string)].SourceCode,
-			QuoteCode:    modelsMap[msg["ch"].(string)].QuoteCode,
-			CurrencyCode: modelsMap[msg["ch"].(string)].CurrencyCode,
+			ProductID:    modelsMap[msg["ex"].(string)+"_"+msg["ch"].(string)].ProductID,
+			Type:         redisModels.ProductType(modelsMap[msg["ex"].(string)+"_"+msg["ch"].(string)].Type),
+			SourceCode:   modelsMap[msg["ex"].(string)+"_"+msg["ch"].(string)].SourceCode,
+			QuoteCode:    modelsMap[msg["ex"].(string)+"_"+msg["ch"].(string)].QuoteCode,
+			CurrencyCode: modelsMap[msg["ex"].(string)+"_"+msg["ch"].(string)].CurrencyCode,
 			Quote: map[string]string{
-				"ask":     msg["a"].(string),
-				"bid":     msg["b"].(string),
+				"ask":     ask[0],
+				"bid":     bid[0],
 				quoteTime: msg["z"].(string),
 			},
 		}
+
+		logging.Info(ctx, "[GetTWSEQuote] test model %#v", quote)
 
 		quotes = append(quotes, quote)
 	}
