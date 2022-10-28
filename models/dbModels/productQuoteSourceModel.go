@@ -11,7 +11,7 @@ const (
 )
 
 type ProductQuoteSourceModel struct {
-	ProductID    uint64      `gorm:"column:id; primary_key"`
+	ProductID    uint64      `gorm:"column:product_id; primary_key"`
 	Type         ProductType `gorm:"column:type"`
 	SourceCode   string      `gorm:"column:source_code"`
 	QuoteCode    string      `gorm:"column:quote_code"`
