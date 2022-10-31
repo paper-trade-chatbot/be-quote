@@ -103,6 +103,7 @@ func GetTWSEQuote(ctx context.Context) error {
 
 		if msg["z"].(string) != "-" {
 			quote.Quote[quoteTime] = msg["z"].(string)
+			quote.Quote["latest"] = msg["z"].(string)
 		}
 
 		quotes = append(quotes, quote)
