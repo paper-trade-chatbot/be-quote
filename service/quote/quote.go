@@ -114,8 +114,13 @@ func (impl *QuoteImpl) GetQuotes(ctx context.Context, in *quote.GetQuotesReq) (*
 		for k, v := range m.Quote {
 			if (k == "ask" && in.Flag&quote.GetQuotesReq_GetFlag_Ask > 0) ||
 				(k == "bid" && in.Flag&quote.GetQuotesReq_GetFlag_Bid > 0) ||
+				(k == "latest" && in.Flag&quote.GetQuotesReq_GetFlag_Latest > 0) ||
 				(in.GetFrom == nil || in.GetTo == nil) {
 				resQuote[k] = v
+				continue
+			}
+
+			if k == "ask" || k == "bid" || k == "latest" {
 				continue
 			}
 
