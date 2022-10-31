@@ -96,10 +96,13 @@ func GetTWSEQuote(ctx context.Context) error {
 			QuoteCode:    modelsMap[msg["ex"].(string)+"_"+msg["ch"].(string)].QuoteCode,
 			CurrencyCode: modelsMap[msg["ex"].(string)+"_"+msg["ch"].(string)].CurrencyCode,
 			Quote: map[string]string{
-				"ask":     ask[0],
-				"bid":     bid[0],
-				quoteTime: msg["z"].(string),
+				"ask": ask[0],
+				"bid": bid[0],
 			},
+		}
+
+		if msg["z"].(string) != "-" {
+			quote.Quote[quoteTime] = msg["z"].(string)
 		}
 
 		quotes = append(quotes, quote)

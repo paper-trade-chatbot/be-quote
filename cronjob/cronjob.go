@@ -22,7 +22,6 @@ func Cron() {
 
 	startTime := time.Now().Truncate(5 * time.Second)
 	scheduler.Every(5).Second().StartAt(startTime).Do(work, TWSE.GetTWSEQuote, TWSE.GetTWSEQuoteKey, time.Second*5)
-
 	// Start all the pending jobs
 	scheduler.StartAsync()
 
