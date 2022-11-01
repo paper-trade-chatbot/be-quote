@@ -2,6 +2,9 @@ package cronjob
 
 import (
 	"context"
+	"encoding/binary"
+	"fmt"
+	"hash/fnv"
 	"reflect"
 	"runtime"
 	"runtime/debug"
@@ -10,9 +13,9 @@ import (
 
 	"github.com/go-co-op/gocron"
 	"github.com/go-redis/redis/v9"
-	"github.com/gofrs/uuid"
 	"github.com/paper-trade-chatbot/be-quote/cache"
 	"github.com/paper-trade-chatbot/be-quote/cronjob/TWSE"
+	"github.com/paper-trade-chatbot/be-quote/cronjob/cleanQuotes"
 	"github.com/paper-trade-chatbot/be-quote/logging"
 )
 
@@ -22,6 +25,10 @@ func Cron() {
 
 	startTime := time.Now().Truncate(5 * time.Second)
 	scheduler.Every(5).Second().StartAt(startTime).Do(work, TWSE.GetTWSEQuote, TWSE.GetTWSEQuoteKey, time.Second*5)
+
+	startTime = time.Now().Truncate(time.Hour)
+	scheduler.Every(1).Hour().StartAt(startTime).Do(work, cleanQuotes.CleanQuotes, cleanQuotes.CleanQuotesKey, time.Second*10)
+
 	// Start all the pending jobs
 	scheduler.StartAsync()
 
@@ -29,15 +36,28 @@ func Cron() {
 
 func work(cronjob func(context.Context) error, generateKey func() string, maxDuration time.Duration) {
 
-	cronjobID, _ := uuid.NewV4()
-	ctx := context.WithValue(context.Background(), logging.ContextKeyRequestId, cronjobID.String())
+	// Generate hash object.
+	hash := fnv.New64a()
+
+	// Use time as hash component.
+	currentTimeBytes := make([]byte, 8)
+	binary.LittleEndian.PutUint64(currentTimeBytes,
+		uint64(time.Now().UnixNano()))
+
+	// Compute hash value.
+	hash.Write([]byte(generateKey()))
+	hash.Write(currentTimeBytes)
+
+	cronjobID := fmt.Sprintf("%012x", hash.Sum64())[:12]
+
+	ctx := context.WithValue(context.Background(), logging.ContextKeyRequestId, cronjobID)
 
 	funcName := strings.Split(runtime.FuncForPC(reflect.ValueOf(cronjob).Pointer()).Name(), "/")
 	logging.Info(ctx, "[cronjob] start %s", funcName[len(funcName)-1])
 	key := "cronjob:" + generateKey()
 
 	r, _ := cache.GetRedis()
-	if flag, _ := r.SetNX(ctx, key, cronjobID.String(), maxDuration).Result(); !flag {
+	if flag, _ := r.SetNX(ctx, key, cronjobID, maxDuration).Result(); !flag {
 		logging.Info(ctx, "[Cronjob] key already exist: %s", key)
 		return
 	}
@@ -70,7 +90,7 @@ func work(cronjob func(context.Context) error, generateKey func() string, maxDur
 	}
 
 	value, err := r.Get(ctx, key).Result()
-	if err != redis.Nil && value == cronjobID.String() {
+	if err != redis.Nil && value == cronjobID {
 		if err := r.Del(ctx, key).Err(); err != nil && err != redis.Nil {
 			logging.Error(ctxTimeout, "[Cronjob] %s failed to delete key: %v", key, err)
 		}

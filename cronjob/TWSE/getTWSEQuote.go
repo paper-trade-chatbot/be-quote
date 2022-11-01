@@ -19,9 +19,6 @@ import (
 	"github.com/paper-trade-chatbot/be-quote/models/redisModels"
 )
 
-type TWSEQuote struct {
-}
-
 func GetTWSEQuote(ctx context.Context) error {
 
 	now := time.Now()
@@ -120,6 +117,6 @@ func GetTWSEQuote(ctx context.Context) error {
 
 func GetTWSEQuoteKey() string {
 	now := time.Now()
-	key := "getTWSEQuote:" + strconv.Itoa(now.Hour()) + "-" + strconv.Itoa(now.Minute()) + "-" + strconv.Itoa(now.Second())
+	key := "GetTWSEQuote:" + strconv.Itoa(now.Hour()) + "-" + strconv.Itoa(now.Minute()) + "-" + strconv.Itoa(now.Second())
 	return key
 }

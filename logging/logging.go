@@ -205,15 +205,16 @@ func log(requestCtx context.Context, level uint, format string, args ...interfac
 	}
 
 	// now is the current Unix timestamp in floating point.
-	now := float64(time.Now().UnixNano()) / float64(time.Second)
+	// now := float64(time.Now().UnixNano()) / float64(time.Second)
+	nowInString := time.Now().Format("2006-01-02 15:04:05.000")
 
 	// Reset terminal color.
 	fmt.Print("\x1b[m")
 
 	// Log to standard output.
 	fmt.Fprintf(os.Stdout,
-		"\r\x1b[100m%f\x1b[m %s\x1b[m \x1b[100m%12s\x1b[m %s\n",
-		now, logLabels[level], requestId, message)
+		"\r\x1b[100m%s\x1b[m %s\x1b[m \x1b[100m%12s\x1b[m %s\n",
+		nowInString, logLabels[level], requestId, message)
 }
 
 // logWithLineNumber performs usual logging but with an extra line number arg.

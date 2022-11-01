@@ -14,7 +14,7 @@ const (
 )
 
 type QueryModel struct {
-	ProductID uint64 `redis:product_id`
+	ProductID uint64 `redis:"product_id"`
 }
 
 func Gets(ctx context.Context, rds *cache.RedisInstance, queries []*QueryModel) ([]*redisModels.QuoteModel, error) {
@@ -31,9 +31,14 @@ func Gets(ctx context.Context, rds *cache.RedisInstance, queries []*QueryModel) 
 		models = append(models, &redisModels.QuoteModel{ProductID: q.ProductID})
 	}
 
-	_, err := pipeline.Exec(ctx)
+	cmd, err := pipeline.Exec(ctx)
 	if err != nil {
 		return nil, err
+	}
+	for _, c := range cmd {
+		if c.Err() != nil && c.Err() != redis.Nil {
+			return nil, c.Err()
+		}
 	}
 
 	for i, v := range values {
