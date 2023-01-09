@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/go-redis/redis/v9"
+	"github.com/paper-trade-chatbot/be-common/cache"
 	"github.com/paper-trade-chatbot/be-common/marshaller"
-	"github.com/paper-trade-chatbot/be-quote/cache"
 	"github.com/paper-trade-chatbot/be-quote/models/redisModels"
 )
 
@@ -36,7 +36,7 @@ func Gets(ctx context.Context, rds *cache.RedisInstance, queries []*QueryModel) 
 		return nil, err
 	}
 	for _, c := range cmd {
-		if c.Err() != nil && c.Err() != redis.Nil {
+		if c.Err() != nil && c.Err().Error() != redis.Nil.Error() {
 			return nil, c.Err()
 		}
 	}

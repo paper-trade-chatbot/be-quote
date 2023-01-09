@@ -5,11 +5,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/paper-trade-chatbot/be-quote/cache"
+	"github.com/paper-trade-chatbot/be-common/cache"
+	"github.com/paper-trade-chatbot/be-common/database"
+	"github.com/paper-trade-chatbot/be-common/logging"
 	"github.com/paper-trade-chatbot/be-quote/dao/productQuoteSourceDao"
 	"github.com/paper-trade-chatbot/be-quote/dao/quoteDao"
-	"github.com/paper-trade-chatbot/be-quote/database"
-	"github.com/paper-trade-chatbot/be-quote/logging"
 )
 
 func CleanQuotes(ctx context.Context) error {
